@@ -1,3 +1,4 @@
+import os
 class MangaVolume:
     def __init__(self,title,mangaka,local_id):
         self.__title=title
@@ -24,16 +25,36 @@ class MangaVolume:
     def __str__(self):
         return f"| title:{self.title} | mangaka:{self.mangaka} | local_id:{self.local_id} "
 class Library:
-    def __init__(self,name):
+    def __init__(self,name,fileName):
         self.name=name
+        self.fileName=fileName
         self.collection=[]
+        self.load_data()
+    def save_data(self):
+        with open(self.fileName,"w",encoding="utf-8") as f:
+            for i in self.collection:
+                line=f"{i.title}|{i.mangaka}|{i.local_id}\n"
+                f.write(line)
+    def load_data(self):
+        if not os.path.exists(self.fileName):
+            return
+        with open(self.fileName,"r",encoding="utf-8") as f:
+            for line in f:
+                try:
+                    data=line.strip().split("|")
+                    if len(data)==3:
+                        vol=MangaVolume(data[0],data[1],data[2])
+                        self.collection.append(vol)
+                except:
+                    continue
+
     def addition(self,vol):
         for i in self.collection:
             if i.local_id==vol.local_id:
-                print("This i a previously existing book.")
-                return
+                return False
         self.collection.append(vol)
-        print(f"Added to {self.name} :{vol.title}")
+        self.save_data()
+        return True
     def __str__(self):
         x=f"\n___ {self.name} ___"
         if not self.collection:
@@ -41,30 +62,30 @@ class Library:
         for vol in self.collection:
            x+="  \n"+str(vol)
         return x
-    def research(self,x):
+    def search(self,x):
         for i in self.collection:
             if x==i.local_id:
-                print(i)
-                return
-        print("This is an unregistered Local_id.")
-    def modify(self,id,t,m):
+                return i
+        return None
+    def modify(self,v):
         for i in self.collection:
-            if id==i.local_id:
-                i.title=t
-                i.mangaka=m
-                print("it has been modfier.")
-                return
-        print("This is an unregistered Local_id.")
+            if v.local_id==i.local_id:
+                i.title=v.title
+                i.mangaka=v.mangaka
+                self.save_data()
+                return True
+        return False
     def remove(self,x):
         for i in self.collection:
             if x==i.local_id:
                 self.collection.remove(i)
-                print("Done to delete.")
-                return
-        print("This is an unregistered Local_id.")
-Manga=Library("Manga")
-Manhua=Library("Manhua")
-Manhwa=Library("Manhwa")
+                self.save_data()
+                return True
+        return False
+        
+Manga=Library("Manga","manga.txt")
+Manhua=Library("Manhua","manhua.txt")
+Manhwa=Library("Manhwa","Manhwa.txt")
 def library_choice():
     print("\nSelect Section: 1.Manga | 2.Manhua | 3.Manhwa")
     choice = input("Type: ")
@@ -93,53 +114,69 @@ while True:
     print("5. Remove")
     print("0. Exit")
     x=input("Choose: ")
-    if x=="1":
-        title=input("Title: ").strip()
-        mangaka=input("mangaka: ").strip()
-        local_id=input("local_id: ").strip()
-        if title == "" or  mangaka == "" or local_id == "":
-            print("Error: you cannot leave fields empty!")
-        else:
-            lib=library_choice()
-            if lib:
-                lib.addition(MangaVolume(title,mangaka,local_id))
+    if x=="1":    
+        lib=library_choice()
+        if lib:
+            title=input("Title: ").strip()
+            mangaka=input("mangaka: ").strip()
+            local_id=input("local_id: ").strip()
+            if title == "" or  mangaka == "" or local_id == "":
+                print("Error: you cannot leave fields empty!")
             else:
-                print("Error. Pleas respect the data.")
+                vol=MangaVolume(title,mangaka,local_id)
+                if lib.addition(vol):
+                    print(f"success : Added {title} to library.")
+                else:
+                    print("Error: A book with this local_id already exists!")
+        else:
+            print("Error. Please respect the data.")
     elif x=="2":
         print(Manga)
         print(Manhua)
         print(Manhwa)
     elif x=="3":
-        local_id=input("local_id: ")
         lib=library_choice()
         if lib:
-            lib.research(local_id)
-        else:
-            print("Error. Pleas respect the data.")
-    elif x=="4":
-        local_id=input("local_id: ")
-        title=input("New Title: ").strip()
-        mangaka=input("New mangaka: ").strip()
-        if title == "" or  mangaka == "" :
-            print("Error: you cannot leave fields empty!")
-        else:
-            lib=library_choice()
-            if lib:
-                lib.modify(local_id,title,mangaka)
+            local_id=input("local_id: ")
+            vol=lib.search(local_id)
+            if vol:
+                print(f"found it : \n{vol}")
             else:
-                print("Error. Pleas respect the data.")
-    elif x=="5":
-        local_id=input("local_id: ")
+                print("No Books found matching this name.")
+
+        else:
+            print("Error. Please respect the data.")
+    elif x=="4":
         lib=library_choice()
         if lib:
-            lib.remove(local_id)
+            local_id=input("local_id: ")
+            title=input("New Title: ").strip()
+            mangaka=input("New mangaka: ").strip()
+            if title == "" or  mangaka == "" :
+                print("Error: you cannot leave fields empty!")
+            else:
+                vol=MangaVolume(title,mangaka,local_id)
+                if lib.modify(vol):
+                    print("Success: Modification done")
+                else:
+                    print("Error: Modification not done.")
         else:
-            print("Error. Pleas respect the data.")
+            print("Error. Please respect the data.")
+    elif x=="5":
+        lib=library_choice()
+        if lib:
+            local_id=input("local_id: ")
+            if lib.remove(local_id):
+                print("Success: Delete done.")
+            else:
+                print("Error:  Delete not done.")
+        else:
+            print("Error. Please respect the data.")
     elif x=="0":
         print("Goodbye.")
         break
     else:
-        print("Error. Pleas respect the data.")
+        print("Error. Please respect the data.")
 
 
 
